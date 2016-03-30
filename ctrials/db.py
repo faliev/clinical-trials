@@ -14,6 +14,11 @@ from sqlalchemy import create_engine, event, func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.expression import ClauseElement, desc
 
+from datetime import datetime
+from elasticsearch import Elasticsearch
+es = Elasticsearch()
+
+from pprint import pprint
 
 def main():
 	create("trialsDB.sqlite3", "trials_xml")
@@ -29,6 +34,7 @@ def create(dbPath, xmlFilesPath, startNumber, limit=0):
 	try:
 		db = DBManager(dbPath, mutable=True)
 		db.open()
+		es = Elasticsearch()
 	except DBException as e:
 		print e
 		sys.exit(1)
@@ -60,8 +66,15 @@ def create(dbPath, xmlFilesPath, startNumber, limit=0):
 			if not skipFile:
 				xmlTrial = XMLTrial.withPath(os.path.join(root, filename))
 				xmlTrial.populate()
-				
-				importer.addTrial(xmlTrial)
+				pprint(vars(xmlTrial))
+				doc = {
+ 				    'condition': xmlTrial.condition,
+    				'text': xmlTrial.string,
+    				'nctID': xmlTrial.nctID
+				}
+
+				res = es.index(index="test-index", doc_type='cstudy', body=doc)
+				# importer.addTrial(xmlTrial)
 				numberParsed += 1
 
 			if limit > 0 and numberParsed >= limit:
@@ -387,6 +400,7 @@ class XMLTrial(object):
 
 		# Pull out the data
 		self.title = etree.find("brief_title").text
+		self.condition = etree.find("condition").text
 		self.leadSponsor = etree.find("sponsors/lead_sponsor/agency").text
 		self.sponsorClass = etree.find("sponsors/lead_sponsor/agency_class").text
 		self.recruitment = etree.find("overall_status").text

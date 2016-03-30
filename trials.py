@@ -23,7 +23,7 @@ def main():
 		update(args.dbPath)
 
 	# Create the charts
-	charts.create(args.chartsPath, args.dbPath, args.force)
+	# charts.create(args.chartsPath, args.dbPath, args.force)
 
 
 def update(dbPath):
